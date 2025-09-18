@@ -1,0 +1,170 @@
+<!--
+Garden-Themed Health Web App (Offline-ready) — ENGLISH ONLY
+This is index.html. It references sw.js (which you’ll save separately).
+-->
+
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#2e7d32" />
+  <title><!-- website name (leave blank for now) --></title>
+  <link rel="manifest" href="data:application/manifest+json,{\"name\":\"Garden Health\",\"short_name\":\"Garden\",\"start_url\":\"./\",\"display\":\"standalone\",\"background_color\":\"#f6fff3\",\"theme_color\":\"#2e7d32\",\"icons\":[]}"/>
+  <style>
+    :root{ --green:#2e7d32; --yellow:#ffd54f; --red:#e53935; --leaf:#66bb6a; --ink:#143618; }
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0;font-family:Inter, Arial, sans-serif;color:var(--ink);background:linear-gradient(180deg,#f6fff3 0%, #e8f5e9 100%)}
+    a{color:inherit}
+    button{cursor:pointer}
+    .app{min-height:100%;display:grid;grid-template-rows:auto 1fr}
+
+    /* Fixed top-left controls */
+    .topbar{position:fixed;top:12px;left:12px;z-index:50;display:flex;gap:8px;align-items:center}
+    .iconbtn{width:44px;height:44px;border-radius:12px;border:3px solid #1b5e20;background:#c8e6c9;display:grid;place-items:center;box-shadow:0 6px 20px rgba(0,0,0,.12)}
+
+    .drawer{position:fixed;top:70px;left:12px;width:250px;max-width:80vw;background:#fff;border:3px solid var(--green);border-radius:16px;box-shadow:0 12px 30px rgba(0,0,0,.18);padding:10px;display:none}
+    .drawer.show{display:block}
+    .listbtn{width:100%;padding:12px 14px;margin:6px 0;border-radius:14px;border:2px solid var(--leaf);background:#effbea;font-weight:700}
+
+    .help{position:fixed;top:70px;left:70px;width:300px;max-width:90vw;background:#fff;border:3px dashed var(--yellow);border-radius:16px;padding:14px;display:none}
+    .help.show{display:block}
+
+    /* Pages */
+    .page{display:none;place-items:center;min-height:100vh;padding:80px 16px 24px}
+    .page.active{display:grid}
+
+    /* Landing */
+    .hero{display:grid;gap:18px;justify-items:center;text-align:center}
+    .garden-card{background:linear-gradient(135deg,#c5e1a5,#aed581);border:4px solid var(--green);border-radius:28px;box-shadow:0 20px 50px rgba(46,125,50,.25);padding:26px;max-width:900px}
+    .title{font-size:clamp(28px,3vw,44px);font-weight:900;color:var(--green)}
+
+    /* Form */
+    form{width:min(900px,100%);background:#fff;border:4px solid var(--leaf);border-radius:24px;box-shadow:0 16px 40px rgba(0,0,0,.12);padding:20px}
+    .grid{display:grid;gap:12px}
+    @media(min-width:700px){.grid{grid-template-columns:repeat(2,1fr)}}
+    input,select{width:100%;padding:12px;border-radius:12px;border:2px solid #cfd8dc}
+
+    .actions{display:flex;gap:10px;justify-content:flex-end;margin-top:10px}
+    .pill{padding:12px 18px;border-radius:999px;border:0;font-weight:800}
+    .primary{background:var(--green);color:#fff}
+    .secondary{background:#e8f5e9;color:#1b5e20;border:2px solid var(--green)}
+
+    /* Hub */
+    .hub{display:grid;gap:24px;justify-items:center}
+    .fruit-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:24px;width:min(1100px,100%)}
+    .fruit{position:relative;height:200px;border:none;box-shadow:0 16px 40px rgba(0,0,0,.18)}
+    .fruit span{position:absolute;bottom:10px;left:50%;transform:translateX(-50%);font-weight:900;text-shadow:0 2px 6px rgba(0,0,0,.2)}
+
+    /* Sections */
+    .section{width:min(1100px,100%);background:#fff;border:4px solid var(--green);border-radius:24px;padding:18px;box-shadow:0 16px 40px rgba(0,0,0,.12)}
+    table{width:100%;border-collapse:separate;border-spacing:0 8px}
+    th,td{padding:10px 12px;background:#f7fff3}
+    th{background:#dcedc8;color:#1b5e20;text-align:left}
+
+    /* Flashcards */
+    .flash{display:grid;gap:14px}
+    .card{background:#fff59d;border:3px solid var(--yellow);border-radius:18px;padding:16px}
+
+    /* Toast + corner popup */
+    .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1b5e20;color:#fff;padding:12px 16px;border-radius:999px;opacity:0;transition:opacity .2s ease}
+    .toast.show{opacity:1}
+    .corner{position:fixed;top:16px;right:16px;background:#1b5e20;color:#fff;padding:12px 16px;border-radius:12px;opacity:0;transition:opacity .2s ease}
+    .corner.show{opacity:1}
+  </style>
+</head>
+<body>
+  <div class="app" id="app">
+    <!-- Top bar -->
+    <div class="topbar">
+      <button class="iconbtn" id="hamburger">☰</button>
+      <button class="iconbtn" id="helpbtn">?</button>
+      <div class="drawer" id="drawer">
+        <button class="listbtn" data-nav="home">Home</button>
+        <button class="listbtn" data-nav="facts">Fun facts & Myths vs Facts</button>
+        <button class="listbtn" data-nav="reset">Reset</button>
+      </div>
+      <div class="help" id="help">
+        <h3>About & Disclaimer</h3>
+        <p><strong>Purpose:</strong> A playful garden-themed health app featuring BMI, tips, meal plan, and hydration tracker.</p>
+        <p><strong>Disclaimer:</strong> This website is for <em>educational purposes</em> only. Always consult a healthcare professional for medical advice.</p>
+      </div>
+    </div>
+
+    <!-- Pages -->
+    <main id="main">
+      <!-- Landing -->
+      <section class="page active" id="page-landing">
+        <div class="hero">
+          <div class="garden-card">
+            <h1 class="title">Welcome to your Garden of Health</h1>
+            <p class="subtitle">A cheerful garden-themed app for your wellness journey 🌿🍅💧</p>
+            <button class="start pill" id="startBtn">Start</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Form -->
+      <section class="page" id="page-form">
+        <form id="infoForm">
+          <h2>Basic Info</h2>
+          <div class="grid">
+            <label>Weight (kg)<input type="number" id="weight" required></label>
+            <label>Height (cm)<input type="number" id="height" required></label>
+            <label>Age<input type="number" id="age" required></label>
+            <label>Sex<select id="sex" required><option value="">-- Select --</option><option>Female</option><option>Male</option><option>Other</option></select></label>
+            <label>Sleep (hrs)<input type="number" id="sleep" required></label>
+            <label>Activity<select id="activity" required><option value="">-- Select --</option><option value="sedentary">Sedentary</option><option value="light">Light</option><option value="moderate">Moderate</option><option value="active">Active</option></select></label>
+          </div>
+          <div class="actions">
+            <button type="submit" class="pill primary">Save & Continue</button>
+          </div>
+        </form>
+      </section>
+
+      <!-- Hub -->
+      <section class="page" id="page-hub">
+        <div class="hub">
+          <header class="garden-card"><h2>Garden Hub</h2></header>
+          <div class="fruit-grid">
+            <button class="fruit" data-open="bmi"><span>BMI</span></button>
+            <button class="fruit" data-open="tips"><span>Health Tips</span></button>
+            <button class="fruit" data-open="meal"><span>Meal Plan</span></button>
+            <button class="fruit" data-open="water"><span>Hydration</span></button>
+          </div>
+        </div>
+      </section>
+
+      <!-- BMI -->
+      <section class="page" id="page-bmi"><div class="section"><h2>BMI Results</h2><p id="bmiOut"></p><ul id="bmiSuggest"></ul></div></section>
+
+      <!-- Tips -->
+      <section class="page" id="page-tips"><div class="section"><h2>Health Tips</h2><ul id="tipsOut"></ul></div></section>
+
+      <!-- Meal Plan -->
+      <section class="page" id="page-meal"><div class="section"><h2>Meal Plan</h2><div id="mealTable"></div></div></section>
+
+      <!-- Hydration -->
+      <section class="page" id="page-water"><div class="section"><h2>Hydration</h2><button id="addGlass">Add Glass</button><button id="resetGlass">Reset</button><p id="waterCount">Today: 0 glasses</p></div></section>
+
+      <!-- Facts -->
+      <section class="page" id="page-facts"><div class="section"><h2>Fun Facts</h2><div id="flashText"></div></div></section>
+    </main>
+
+    <div class="toast" id="toast"></div>
+    <div class="corner" id="corner"></div>
+  </div>
+
+  <script>
+    const $=s=>document.querySelector(s);
+    let currentPage='landing';
+    function showPage(id){document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));$('#page-'+id).classList.add('active');currentPage=id;}
+    $('#startBtn').onclick=()=>showPage('form');
+    $('#infoForm').onsubmit=e=>{e.preventDefault();showPage('hub');};
+    document.querySelector('#page-hub').onclick=e=>{const b=e.target.closest('[data-open]');if(!b)return;showPage(b.dataset.open);}
+    let lastLog=Date.now();
+    $('#addGlass').onclick=()=>{lastLog=Date.now();$('#waterCount').textContent='Added a glass!';};
+    setInterval(()=>{if(currentPage==='water'&&Date.now()-lastLog>2*60*60*1000){$('#corner').textContent=\"It's been 2 hours — drink up!\";$('#corner').classList.add('show');}},60000);
+  </script>
+</body>
+</html>
